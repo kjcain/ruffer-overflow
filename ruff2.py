@@ -604,7 +604,7 @@ def analyze_local_binary(target_binary, target_platform, target_architecture, ta
 def generate_payload(target_platform):
     windows_payloads = ["windows/shell_bind_tcp", "windows/exec", "windows/download_exec"]
     linux_payloads = ["linux/x86/shell_bind_tcp", "linux/x86/exec"]
-    if platform == PLATFORM_WINDOWS:
+    if target_platform == PLATFORM_WINDOWS:
         payload_choice = prompt_list("select a payload.", windows_payloads)
         if payload_choice == "windows/shell_bind_tcp":
             lport = prompt_number("what port would you like it to listen on?")
@@ -636,6 +636,33 @@ def generate_payload(target_platform):
     return payload
 
 def weaponize(target_binary, target_platform, target_architecture, target_type, target_port, target_prefix, target_offset, target_instruction_source_file, target_instruction_base_address, target_instruction_address, target_instruction_offset_distance):
+    payload = generate_payload(target_platform)
+    
+    build_script = prompt_yn("would you like to build a python delivery script?")
+    
+    file_name = prompt_base("what would you like to name the file?")
+    
+    # give command to check base address
+    adjust_offset = prompt_yn("would you like to adjust target instruction address?")
+
+    if adjust_offset:
+        log(f"current target instruction source file is {target_instruction_source_file}")
+        log(f"current target instruction source file base address is 0x{target_instruction_base_address}")
+        log(f"current target instruction address is 0x{target_instruction_address} (0x{target_instruction_base_address}+{target_instruction_offset_distance})")
+        log("adjusting offset")
+        log("you can get the base address using 'objdump -f <file_name>'")
+        new_target_instruction_base_address = prompt_base("what is the new base address?")
+        new_target_instruction_address = "{:08x}".format(int(new_target_instruction_base_address, 16) + target_instruction_offset_distance)
+        target_instruction_base_address = new_target_instruction_base_address
+        target_instruction_address = new_target_instruction_address
+        log(f"new target instruction source file base address is 0x{target_instruction_base_address}")
+        log(f"new target instruction address is 0x{target_instruction_address} (0x{target_instruction_base_address}+{target_instruction_offset_distance})")
+
+    if build_script:
+        
+    else: # generate payload file
+        
+
     pass
 #endregion
 
