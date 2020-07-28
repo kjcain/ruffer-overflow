@@ -1,11 +1,15 @@
 # ruffer-overflow
+
 buffer overflow detection and exploitation tool for VERY low hanging fruit 
 
 ----
-### example (secureserverind.exe)
+
+## example (secureserverind.exe)
+
 note: secureserverind.exe is actually from the [vulnserver project by stephenbradshaw](https://github.com/stephenbradshaw/vulnserver) 
 this command line interaction generates a python file designed to exploit a buffer overflow
 ![example](/examples/secureserverind.exe/command_line_output.png)
+
 ``` python3
 #!/usr/bin/python3
 
