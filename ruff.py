@@ -22,6 +22,10 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
 # DEALINGS IN THE SOFTWARE.
 
+# This is a tool intended for educational purposes only.
+# Do not modify or use if you do not understand what it does.
+# Do not use this tool for any illegal purpose.
+
 #todo: add comments and fix layout
 #todo: way more testing
 
