@@ -445,6 +445,14 @@ def analyze_local_server_binary_get_ports(target_binary, target_platform):
     log(f"target port {port}")
     return port
 
+def analyze_local_binary_get_offset(target_binary, target_platform, target_architecture, target_type, target_port):
+
+    return 0
+
+def analyze_local_binary_get_target_addresses(target_binary, target_platform, target_architecture, target_type, target_port, target_offset):
+    
+    return (0, 0)
+
 def analyze_local_binary(target_binary, target_platform, target_architecture, target_type):
     # get port (if necessary)
     target_port = -1 # filler, unused for cli apps
@@ -453,9 +461,9 @@ def analyze_local_binary(target_binary, target_platform, target_architecture, ta
 
     target_prefix = prompt_base("what prefix should be used for interaction? (leave blank for none)")
 
-    target_offset = 0
-    target_base_address = 0
-    target_instruction_address =0
+    target_offset = analyze_local_binary_get_offset(target_binary, target_platform, target_architecture, target_type, target_port)
+    
+    target_base_address, target_instruction_address = analyze_local_binary_get_target_addresses((target_binary, target_platform, target_architecture, target_type, target_port, target_offset))
 
     return (target_binary, target_platform, target_architecture, target_type, target_port, target_prefix, target_offset, target_base_address, target_instruction_address)
     
