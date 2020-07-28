@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
-#todo: add comments
+#todo: add comments and fix layout
+#todo: way more testing
 
 import datetime
 import getopt
