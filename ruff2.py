@@ -1,15 +1,17 @@
 #!/usr/bin/python3
 
-import socket
-import os
-import sys
-import getopt
-import time
-import subprocess
-import re
-import struct
-import platform
+#todo: add comments
+
 import datetime
+import getopt
+import os
+import platform
+import re
+import socket
+import struct
+import subprocess
+import sys
+import time
 
 #region tuning
 PATTERN_SIZE = 5000 #characters
