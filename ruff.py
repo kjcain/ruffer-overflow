@@ -69,7 +69,7 @@ def print_banner():
     banner += "                   |:  ::::.       ::'\n"
     banner += "                   |:  ::::::    ,::'\n"
     banner += "########################################################\n"
-    banner += "#                   ruffer-overflow                    #\n"
+    banner += "#                 ruffer-overflow v0.2                 #\n"
     banner += "#           don't \"bark\" up the wrong tree.            #\n"
     banner += "#======================================================#\n"
     banner += "#         weak-sauce tool for buffer-overflow          #\n"
