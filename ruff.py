@@ -702,7 +702,7 @@ def weaponize(target_binary, target_platform, target_architecture, target_type, 
     script += "EXECUTE_EXPLOIT = True\n"
     if target_type == APP_TYPE_SERVER:
         script += f'TARGET_ADDRESS = "{prompt_base("what address would you like to target?")}" # target host\n'
-        script += f'TARGET_PORT = "{prompt_number("what port would you like to target?")}" # exposed port on the target host\n'
+        script += f'TARGET_PORT = {prompt_number("what port would you like to target?")} # exposed port on the target host\n'
     else:
         script += f'TARGET_BIN = "{prompt_base("what binary would you like to target?")}" # target binary'
     script += "#endregion\n\n"
