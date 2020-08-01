@@ -70,7 +70,10 @@ APP_TYPE_CLI = "cli"
 
 #region banners
 def print_banner(dog=True):
-    """prints of the "ruffer-overflow" banner
+    """prints the "ruffer-overflow" banner
+
+    Args:
+        dog (bool, optional): prints the dog ascii art. Defaults to True.
     """
     banner = ""
     if dog:
@@ -231,6 +234,15 @@ def prompt_list(prompt, options):
             pass
 
 def prompt_table(prompt, table):
+    """prompt the user to select a line from a table
+
+    Args:
+        prompt (str): what to ask the user
+        table (str[][]): options to give the user
+
+    Returns:
+        str[]: the option the user selected
+    """
     while True:
         print(prompt)
         for i in range(0, len(table)):
@@ -280,11 +292,16 @@ def log(info):
 #todo: add check for msfvenom
 #todo: add check for objdump
 def check_architecture(target_architecture):
+    """checks that the architecture of this machine is compatible with the binary
+
+    Args:
+        target_architecture (str): ARCH_16_BIT, ARCH_32_BIT, or ARCH_64_BIT
+    """
     if target_architecture == ARCH_16_BIT:
-        # should be fine
+        # should be fine, most computers are at least 32 bit these days
         pass
     elif target_architecture == ARCH_32_BIT:
-        # should be fine
+        # should be fine, most computers are at least 32 bit these days
         pass
     elif target_architecture == ARCH_64_BIT:
         # needs to be a 64 bit system
@@ -295,6 +312,11 @@ def check_architecture(target_architecture):
         log_error(f"something is strange with the architecture type '{target_architecture}'")
 
 def check_platform(target_platform):
+    """ensures that the platform is able to run the binary
+
+    Args:
+        target_platform (str): PLATFORM_LINUX or PLATFORM_WINDOWS
+    """
     if target_platform == PLATFORM_LINUX:
         pass
     elif target_platform == PLATFORM_WINDOWS:
@@ -307,6 +329,14 @@ def check_platform(target_platform):
         log_error(f"something is strange with the platform type '{target_platform}'")
 
 def check_dependencies(target_binary, target_platform, target_architecture, target_type):
+    """verifies that the platform and architecture are able to run the binary
+
+    Args:
+        target_binary (str): the path to the binary
+        target_platform (str): the platform required to run the binary
+        target_architecture (str): the architecture used to create the binary
+        target_type (str): the type of binary
+    """
     check_architecture(target_architecture)
     check_platform(target_platform)
 #endregion
