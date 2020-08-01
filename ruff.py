@@ -412,6 +412,18 @@ def send_message_tcp(address, port, message):
     return response
 
 def push_message(target_binary, target_platform, target_type, target_port, message):
+    """send a message to a binary, either via tcp or direct command line interaction
+
+    Args:
+        target_binary (str): path to the target
+        target_platform (str): platform name
+        target_type (str): type of binary
+        target_port (str): port the server will listen to (-1 if unused)
+        message (str): message to send
+
+    Returns:
+        (str, str): stdout and stderror from the application
+    """
     stderr = ""
     stdout = ""
     if target_type == APP_TYPE_SERVER:
@@ -518,19 +530,37 @@ def get_target_platform(target_binary):
     return (platform, architecture)
 
 def get_target_type():
-    is_cli = prompt_yn("is this a command-line application(not a server)?")
+    """checks if this is a command line or server application
+
+    Returns:
+        str: APP_TYPE_CLI or APP_TYPE_SERVER
+    """
+    is_cli = prompt_yn("is this a command-line application?")
     if is_cli:
         return APP_TYPE_CLI
     else:
         return APP_TYPE_SERVER
 
 def get_target_info():
+    """gets starting information about the target binary from the user
+
+    Returns:
+        (str, str, str, str): path to the binary, platform, architecture, and type of application
+    """
     target_binary = get_target_binary()
     target_platform, target_architecture = get_target_platform(target_binary)
     target_type = get_target_type()
     return target_binary, target_platform, target_architecture, target_type
 
 def get_binary_start_address(target_binary):
+    """gets the starting address of the binary
+
+    Args:
+        target_binary (str): path to the binary
+
+    Returns:
+        str: the starting address of the binary from objdump -f
+    """
     obj_dump = subprocess.Popen(["objdump", "-f", target_binary],stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     results = obj_dump.stdout.read().decode()
     start_address = results.strip()[-10:]
