@@ -569,6 +569,15 @@ def get_binary_start_address(target_binary):
 
 #region local binary analysis
 def analyze_local_server_binary_get_ports(target_binary, target_platform):
+    """allow the user to manually imput the ports or run the binary and pull ports via netstat
+
+    Args:
+        target_binary (str): path to the binary
+        target_platform (str): PLATFORM_WINDOWS or PLATFORM_LINUX
+
+    Returns:
+        int: port being used by the binary
+    """
     log("warning: this will run the binary on your local machine, this could put you at risk")
     detect_ports = prompt_yn("magically detect ports?")
     port = -1
@@ -619,6 +628,19 @@ def analyze_local_server_binary_get_ports(target_binary, target_platform):
     return port
 
 def analyze_local_binary_get_offset(target_binary, target_platform, target_architecture, target_type, target_port, target_prefix):
+    """identify the buffer overflow offset
+
+    Args:
+        target_binary (str): path to the binary file
+        target_platform (str): PLATFORM_WINDOWS or PLATFORM_LINUX
+        target_architecture (str): ARCH_16_BIT, ARCH_32_BIT, or ARCH_64_BIT
+        target_type (str): APP_TYPE_SERVER or APP_TYPE_CLI
+        target_port (int): active port on APP_TYPE_SERVER
+        target_prefix (str): prefix for the buffer overflow
+
+    Returns:
+        int: overflow offset
+    """
     # build pattern and map message
     pattern = get_pattern()
     map_message = target_prefix + pattern
@@ -643,6 +665,20 @@ def analyze_local_binary_get_offset(target_binary, target_platform, target_archi
     return offset
 
 def analyze_local_binary_get_target_addresses(target_binary, target_platform, target_architecture, target_type, target_port, target_prefix, target_offset):
+    """[summary]
+
+    Args:
+        target_binary ([type]): [description]
+        target_platform ([type]): [description]
+        target_architecture ([type]): [description]
+        target_type ([type]): [description]
+        target_port ([type]): [description]
+        target_prefix ([type]): [description]
+        target_offset ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
     binaries = [target_binary]
 
     if target_platform == PLATFORM_WINDOWS:
