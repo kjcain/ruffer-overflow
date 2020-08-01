@@ -369,7 +369,7 @@ def send_message_tcp(address, port, message):
     """
     socket_connection = socket.socket( socket.AF_INET, socket.SOCK_STREAM ) # tcp
     socket_connection.connect((address, port))
-    banner = socket_connection.recv(2048)
+    socket_connection.recv(2048)
     socket_connection.send(message)
     response = socket_connection.recv(2048)
     socket_connection.close()
