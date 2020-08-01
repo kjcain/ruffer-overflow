@@ -69,31 +69,33 @@ APP_TYPE_CLI = "cli"
 #endregion
 
 #region banners
-def print_banner():
+def print_banner(dog=True):
     """prints of the "ruffer-overflow" banner
     """
-    banner =  "           ____,'`-,\n"
-    banner += "      _,--'   ,/::.;\n"
-    banner += "   ,-'       ,/::,' `---.___        ___,_\n"
-    banner += "   |       ,:';:/        ;'\"';\"`--./ ,-^.;--.\n"
-    banner += "   |:     ,:';,'         '         `.   ;`   `-.\n"
-    banner += "    \\:.,:::/;/ -:.                   `  | `     `-.\n"
-    banner += "     \\:::,'//__.;  ,;  ,  ,  :.`-.   :. |  ;       :.\n"
-    banner += "      \\,',';/O)^. :'  ;  :   '__` `  :::`.       .:' )\n"
-    banner += "      |,'  |\\__,: ;      ;  '/O)`.   :::`;       ' ,'\n"
-    banner += "           |`--''            \\__,' , ::::(       ,'\n"
-    banner += "           `    ,            `--' ,: :::,'\\   ,-'\n"
-    banner += "            | ,;         ,    ,::'  ,:::   |,'\n"
-    banner += "            |,:        .(          ,:::|   `\n"
-    banner += "            ::'_   _   ::         ,::/:|\n"
-    banner += "           ,',' `-' \\   `.      ,:::/,:|\n"
-    banner += "          | : _  _   |   '     ,::,' :::\n"
-    banner += "          | \\ O`'O  ,',   ,    :,'   ;::\n"
-    banner += "           \\ `-'`--',:' ,' , ,,'      ::\n"
-    banner += "            ``:.:.__   ',-','        ::'\n"
-    banner += "    -hrr-      `--.__, ,::.         ::'\n"
-    banner += "                   |:  ::::.       ::'\n"
-    banner += "                   |:  ::::::    ,::'\n"
+    banner = ""
+    if dog:
+        banner += "           ____,'`-,\n"
+        banner += "      _,--'   ,/::.;\n"
+        banner += "   ,-'       ,/::,' `---.___        ___,_\n"
+        banner += "   |       ,:';:/        ;'\"';\"`--./ ,-^.;--.\n"
+        banner += "   |:     ,:';,'         '         `.   ;`   `-.\n"
+        banner += "    \\:.,:::/;/ -:.                   `  | `     `-.\n"
+        banner += "     \\:::,'//__.;  ,;  ,  ,  :.`-.   :. |  ;       :.\n"
+        banner += "      \\,',';/O)^. :'  ;  :   '__` `  :::`.       .:' )\n"
+        banner += "      |,'  |\\__,: ;      ;  '/O)`.   :::`;       ' ,'\n"
+        banner += "           |`--''            \\__,' , ::::(       ,'\n"
+        banner += "           `    ,            `--' ,: :::,'\\   ,-'\n"
+        banner += "            | ,;         ,    ,::'  ,:::   |,'\n"
+        banner += "            |,:        .(          ,:::|   `\n"
+        banner += "            ::'_   _   ::         ,::/:|\n"
+        banner += "           ,',' `-' \\   `.      ,:::/,:|\n"
+        banner += "          | : _  _   |   '     ,::,' :::\n"
+        banner += "          | \\ O`'O  ,',   ,    :,'   ;::\n"
+        banner += "           \\ `-'`--',:' ,' , ,,'      ::\n"
+        banner += "            ``:.:.__   ',-','        ::'\n"
+        banner += "    -hrr-      `--.__, ,::.         ::'\n"
+        banner += "                   |:  ::::.       ::'\n"
+        banner += "                   |:  ::::::    ,::'\n"
     banner += "########################################################\n"
     banner += "#                 ruffer-overflow v0.2                 #\n"
     banner += "#           don't \"bark\" up the wrong tree.            #\n"
@@ -106,7 +108,7 @@ def print_banner():
 
 #region validation
 """
-copied from: https://stackoverflow.com/a/4017219
+is_valid_ip logic copied from: https://stackoverflow.com/a/4017219
 post by danilo bargen and tzot
 """
 def is_valid_ipv4_address(address):
