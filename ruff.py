@@ -665,19 +665,19 @@ def analyze_local_binary_get_offset(target_binary, target_platform, target_archi
     return offset
 
 def analyze_local_binary_get_target_addresses(target_binary, target_platform, target_architecture, target_type, target_port, target_prefix, target_offset):
-    """[summary]
+    """identifies a vulnerable instruction address
 
     Args:
-        target_binary ([type]): [description]
-        target_platform ([type]): [description]
-        target_architecture ([type]): [description]
-        target_type ([type]): [description]
-        target_port ([type]): [description]
-        target_prefix ([type]): [description]
-        target_offset ([type]): [description]
+        target_binary (str): path to the binary file
+        target_platform (str): PLATFORM_WINDOWS or PLATFORM_LINUX
+        target_architecture (str): ARCH_16_BIT, ARCH_32_BIT, or ARCH_64_BIT
+        target_type (str): APP_TYPE_SERVER or APP_TYPE_CLI
+        target_port (int): active port on APP_TYPE_SERVER
+        target_prefix (str): prefix for the buffer overflow
+        target_offset (int): offset distance
 
     Returns:
-        [type]: [description]
+        (str, str, str, int): target_source_file, target_base_address, target_instruction_address, target_instruction_offset_distance
     """
     binaries = [target_binary]
 
@@ -723,6 +723,17 @@ def analyze_local_binary_get_target_addresses(target_binary, target_platform, ta
     return (target_source_file, target_base_address, target_instruction_address, target_instruction_offset_distance)
 
 def analyze_local_binary(target_binary, target_platform, target_architecture, target_type):
+    """get relevant information about the local binary
+
+    Args:
+        target_binary (str): path to the binary
+        target_platform (str): PLATFORM_WINDOWS or PLATFORM_LINUX
+        target_architecture (str): ARCH_16_BIT, ARCH_32_BIT, or ARCH_64_BIT
+        target_type (str): APP_TYPE_SERVER or APP_TYPE_CLI
+
+    Returns:
+        (str, str, str, str, int, str, int, str, str, str, int): target_binary, target_platform, target_architecture, target_type, target_port, target_prefix, target_offset, target_instruction_source_file, target_instruction_base_address, target_instruction_address, target_instruction_offset_distance
+    """
     # get port (if necessary)
     target_port = -1 # filler, unused for cli apps
     if target_type == APP_TYPE_SERVER:
@@ -739,6 +750,14 @@ def analyze_local_binary(target_binary, target_platform, target_architecture, ta
 
 #region weaponization
 def generate_payload(target_platform):
+    """generate a payload with msfvenom
+
+    Args:
+        target_platform (str): PLATFORM_WINDOWS or PLATFORM_LINUX
+
+    Returns:
+        str: payload, formatted int the "buf += b''" format
+    """
     windows_payloads = ["windows/shell_bind_tcp", "windows/exec", "windows/download_exec"]
     linux_payloads = ["linux/x86/shell_bind_tcp", "linux/x86/exec"]
     if target_platform == PLATFORM_WINDOWS:
@@ -772,6 +791,21 @@ def generate_payload(target_platform):
     return raw_payload
 
 def weaponize(target_binary, target_platform, target_architecture, target_type, target_port, target_prefix, target_offset, target_instruction_source_file, target_instruction_base_address, target_instruction_address, target_instruction_offset_distance):
+    """create the exploit script
+
+    Args:
+        target_binary (str): path to the binary file
+        target_platform (str): PLATFORM_WINDOWS or PLATFORM_LINUX
+        target_architecture (str): ARCH_16_BIT, ARCH_32_BIT, or ARCH_64_BIT
+        target_type (str): APP_TYPE_SERVER or APP_TYPE_CLI
+        target_port (int): active port on APP_TYPE_SERVER
+        target_prefix (str): prefix for the buffer overflow
+        target_offset (int): offset distance
+        target_instruction_source_file (str): source of the exploitable instruction
+        target_instruction_base_address (str): base address of the file with the exploitable instruction
+        target_instruction_address (str): address of the exploitable instruction
+        target_instruction_offset_distance (int): offset from the base address to the address
+    """
     payload = generate_payload(target_platform)
         
     file_name = prompt_base("what would you like to name the exploit script?")
