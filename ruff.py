@@ -26,9 +26,15 @@
 # Do not modify or use if you do not understand what it does.
 # Do not use this tool for any illegal purpose.
 
+#todo list
+#========================================================
 #todo: add comments and fix layout
 #todo: way more testing
+#todo: add checks for other utilities (ie. grep, netstat)
+#todo: add check for msfvenom
+#todo: add check for objdump
 
+#region imports
 import datetime
 import getopt
 import os
@@ -39,6 +45,7 @@ import struct
 import subprocess
 import sys
 import time
+#endregion
 
 #region tuning
 PATTERN_SIZE = 5000 #characters
@@ -288,9 +295,6 @@ def log(info):
 #endregion
 
 #region local environment validation
-#todo: add checks for other utilities (ie. grep, netstat)
-#todo: add check for msfvenom
-#todo: add check for objdump
 def check_architecture(target_architecture):
     """checks that the architecture of this machine is compatible with the binary
 
